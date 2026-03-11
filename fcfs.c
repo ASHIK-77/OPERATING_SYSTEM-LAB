@@ -32,19 +32,6 @@ p[j] = temp;
 }
 }
 int current_time = 0;
-for(i = 0; i < n - 1; i++)
-{
-for(j = i + 1; j < n; j++)
-{
-if(p[i].arrival_time > p[j].arrival_time)
-{
-struct process temp = p[i];
-p[i] = p[j];
-p[j] = temp;
-}
-}
-}
-
 for(i = 0; i < n; i++)
 {
 if(current_time < p[i].arrival_time)
@@ -75,7 +62,7 @@ p[i].waiting_time);
 }
 
 printf("\nAverage Waiting Time: %.2f\n", avg_wt);
-printf("\nAverage Waiting Time: %.2f\n", avg_tat); 
+printf("\nAverage Turn Around Time: %.2f\n", avg_tat);
 printf("\n\tGant chart\n");
 printf("|");
 for(i=0;i<n;i++)
