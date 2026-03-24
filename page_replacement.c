@@ -1,229 +1,168 @@
 #include <stdio.h>
+#include <stdlib.h>
 
-void printFrames(int f[], int frames) {
-    for (int i = 0; i < frames; i++) {
-        if (f[i] == -1)
-            printf("-\t");
-        else
-            printf("%d\t", f[i]);
+void sort(int arr[], int n) {
+    for(int i = 0; i < n - 1; i++) {
+        for(int j = i + 1; j < n; j++) {
+            if(arr[i] > arr[j]) {
+                int temp = arr[i];
+                arr[i] = arr[j];
+                arr[j] = temp;
+            }
+        }
     }
 }
 
-void FIFO(int pages[], int n, int frames) {
-    int f[10], faults = 0, pos = 0;
+void sstf(int req[], int n, int head) {
+    int visited[n];
+    for(int i = 0; i < n; i++) visited[i] = 0;
 
-    for (int i = 0; i < frames; i++)
-        f[i] = -1;
+    int total_seek = 0, current = head;
 
-    printf("\nFIFO Page Replacement\n");
-    printf("Page\t");
-    for (int i = 0; i < frames; i++)
-        printf("F%d\t", i + 1);
-    printf("Status\n");
+    printf("\nSSTF Head Movement:\n%d", current);
 
-    for (int i = 0; i < n; i++) {
-        int found = 0;
+    for(int i = 0; i < n; i++) {
+        int min = 100000, index = -1;
 
-        for (int j = 0; j < frames; j++) {
-            if (f[j] == pages[i]) {
-                found = 1;
-                break;
+        for(int j = 0; j < n; j++) {
+            if(!visited[j]) {
+                int dist = abs(current - req[j]);
+                if(dist < min) {
+                    min = dist;
+                    index = j;
+                }
             }
         }
 
-        printf("%d\t", pages[i]);
-
-        if (found) {
-            printFrames(f, frames);
-            printf("H\n");
-        } else {
-            f[pos] = pages[i];
-            pos = (pos + 1) % frames;
-            faults++;
-
-            printFrames(f, frames);
-            printf("M\n");
-        }
+        visited[index] = 1;
+        total_seek += min;
+        current = req[index];
+        printf(" -> %d", current);
     }
 
-    printf("Total Page Faults = %d\n", faults);
+    printf("\nTotal Seek Time (SSTF): %d\n", total_seek);
 }
 
-void LRU(int pages[], int n, int frames) {
-    int f[10], time[10], faults = 0, count = 0;
+void cscan(int req[], int n, int head, int disk_size) {
+    int above[n], below[n];
+    int a = 0, b = 0;
 
-    for (int i = 0; i < frames; i++) {
-        f[i] = -1;
-        time[i] = 0;
+    for(int i = 0; i < n; i++) {
+        if(req[i] >= head) above[a++] = req[i];
+        else below[b++] = req[i];
     }
 
-    printf("\nLRU Page Replacement\n");
-    printf("Page\t");
-    for (int i = 0; i < frames; i++)
-        printf("F%d\t", i + 1);
-    printf("Status\n");
+    sort(above, a);
+    sort(below, b);
 
-    for (int i = 0; i < n; i++) {
-        int found = 0;
+    int total_seek = 0, current = head;
 
-        for (int j = 0; j < frames; j++) {
-            if (f[j] == pages[i]) {
-                count++;
-                time[j] = count;
-                found = 1;
-                break;
-            }
+    printf("\nC-SCAN Head Movement:\n%d", current);
+
+    for(int i = 0; i < a; i++) {
+        total_seek += abs(current - above[i]);
+        current = above[i];
+        printf(" -> %d", current);
+    }
+
+    if(b > 0) {
+        if(current != disk_size - 1) {
+            total_seek += abs((disk_size - 1) - current);
+            current = disk_size - 1;
+            printf(" -> %d", current);
         }
 
-        printf("%d\t", pages[i]);
+        total_seek += (disk_size - 1);
+        current = 0;
+        printf(" -> %d", current);
 
-        if (found) {
-            printFrames(f, frames);
-            printf("H\n");
-        } else {
-            int pos = -1;
-
-            for (int j = 0; j < frames; j++) {
-                if (f[j] == -1) {
-                    pos = j;
-                    break;
-                }
-            }
-
-            if (pos == -1) {
-                int min = time[0];
-                pos = 0;
-
-                for (int j = 1; j < frames; j++) {
-                    if (time[j] < min) {
-                        min = time[j];
-                        pos = j;
-                    }
-                }
-            }
-
-            f[pos] = pages[i];
-            count++;
-            time[pos] = count;
-            faults++;
-
-            printFrames(f, frames);
-            printf("M\n");
+        for(int i = 0; i < b; i++) {
+            total_seek += abs(current - below[i]);
+            current = below[i];
+            printf(" -> %d", current);
         }
     }
 
-    printf("Total Page Faults = %d\n", faults);
+    printf("\nTotal Seek Time (C-SCAN): %d\n", total_seek);
 }
 
-void OPTIMAL(int pages[], int n, int frames) {
-    int f[10], faults = 0;
+void look(int req[], int n, int head) {
+    int above[n], below[n];
+    int a = 0, b = 0;
 
-    for (int i = 0; i < frames; i++)
-        f[i] = -1;
-
-    printf("\nOptimal Page Replacement\n");
-    printf("Page\t");
-    for (int i = 0; i < frames; i++)
-        printf("F%d\t", i + 1);
-    printf("Status\n");
-
-    for (int i = 0; i < n; i++) {
-        int found = 0;
-
-        for (int j = 0; j < frames; j++) {
-            if (f[j] == pages[i]) {
-                found = 1;
-                break;
-            }
-        }
-
-        printf("%d\t", pages[i]);
-
-        if (found) {
-            printFrames(f, frames);
-            printf("H\n");
-        } else {
-            int pos = -1;
-
-            for (int j = 0; j < frames; j++) {
-                if (f[j] == -1) {
-                    pos = j;
-                    break;
-                }
-            }
-
-            if (pos == -1) {
-                int farthest = -1;
-
-                for (int j = 0; j < frames; j++) {
-                    int nextUse = -1;
-
-                    for (int k = i + 1; k < n; k++) {
-                        if (f[j] == pages[k]) {
-                            nextUse = k;
-                            break;
-                        }
-                    }
-
-                    if (nextUse == -1) {
-                        pos = j;
-                        break;
-                    }
-
-                    if (nextUse > farthest) {
-                        farthest = nextUse;
-                        pos = j;
-                    }
-                }
-            }
-
-            f[pos] = pages[i];
-            faults++;
-
-            printFrames(f, frames);
-            printf("M\n");
-        }
+    for(int i = 0; i < n; i++) {
+        if(req[i] >= head) above[a++] = req[i];
+        else below[b++] = req[i];
     }
 
-    printf("Total Page Faults = %d\n", faults);
+    sort(above, a);
+    sort(below, b);
+
+    int total_seek = 0, current = head;
+
+    printf("\nLOOK Head Movement:\n%d", current);
+
+    for(int i = 0; i < a; i++) {
+        total_seek += abs(current - above[i]);
+        current = above[i];
+        printf(" -> %d", current);
+    }
+
+    for(int i = b - 1; i >= 0; i--) {
+        total_seek += abs(current - below[i]);
+        current = below[i];
+        printf(" -> %d", current);
+    }
+
+    printf("\nTotal Seek Time (LOOK): %d\n", total_seek);
 }
 
 int main() {
-    int n, frames, choice;
-    int pages[50];
+    int choice;
 
-    printf("Enter reference string length: ");
-    scanf("%d", &n);
+    do {
+        int n, head, disk_size;
 
-    printf("Enter number of frames: ");
-    scanf("%d", &frames);
-
-    printf("Enter page reference string:\n");
-    for (int i = 0; i < n; i++) {
-        scanf("%d", &pages[i]);
-    }
-
-    while (1) {
-        printf("\n1. FIFO\n2. LRU\n3. Optimal\n4. Exit\n");
-        printf("Enter choice: ");
+        printf("\n===== Disk Scheduling Menu =====\n");
+        printf("1. SSTF\n");
+        printf("2. C-SCAN\n");
+        printf("3. LOOK\n");
+        printf("4. Exit\n");
+        printf("Enter your choice: ");
         scanf("%d", &choice);
 
-        switch (choice) {
-            case 1:
-                FIFO(pages, n, frames);
-                break;
-            case 2:
-                LRU(pages, n, frames);
-                break;
-            case 3:
-                OPTIMAL(pages, n, frames);
-                break;
-            case 4:
-                return 0;
-            default:
-                printf("Invalid choice\n");
+        if(choice >= 1 && choice <= 3) {
+            printf("Enter number of disk requests: ");
+            scanf("%d", &n);
+
+            int req[n];
+            printf("Enter the disk request sequence: ");
+            for(int i = 0; i < n; i++)
+                scanf("%d", &req[i]);
+
+            printf("Enter initial head position: ");
+            scanf("%d", &head);
+
+            switch(choice) {
+                case 1:
+                    sstf(req, n, head);
+                    break;
+
+                case 2:
+                    printf("Enter disk size: ");
+                    scanf("%d", &disk_size);
+                    cscan(req, n, head, disk_size);
+                    break;
+
+                case 3:
+                    look(req, n, head);
+                    break;
+            }
         }
-    }
+
+    } while(choice != 4);
+
+    printf("Exiting program...\n");
 
     return 0;
 }
